@@ -4,12 +4,13 @@ import { applicationApi, jobApi, STATUSES } from '../services/api';
 import useFetch from '../hooks/useFetch';
 import { useRole } from '../context/RoleContext';
 import { useToast } from '../context/ToastContext';
-import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import Avatar from '../components/Avatar';
+import Icon from '../components/Icon';
 import Loader from '../components/Loader';
 import ErrorMessage from '../components/ErrorMessage';
 import ConfirmModal from '../components/ConfirmModal';
-import { checkEligibility, formatDate, isOpen } from '../utils';
+import { deadlineText, formatDate, isOpen } from '../utils';
 
 export default function JobDetails() {
   const { id } = useParams();
@@ -29,8 +30,16 @@ export default function JobDetails() {
   if (job.error) return <ErrorMessage message={job.error} onRetry={job.reload} />;
 
   const j = job.data;
+  const open = isOpen(j.deadline);
   const myApp = !isAdmin ? apps.data?.[0] : null;
-  const eligibility = currentStudent ? checkEligibility(j, currentStudent) : null;
+  const checks = currentStudent
+    ? [
+        { label: 'Applications open', detail: open ? deadlineText(j.deadline) : `Closed on ${formatDate(j.deadline)}`, ok: open },
+        { label: 'Branch eligible', detail: `${currentStudent.branch} — accepted: ${j.eligibleBranches.join(', ')}`, ok: j.eligibleBranches.includes(currentStudent.branch) },
+        { label: 'CGPA requirement', detail: `You have ${currentStudent.cgpa}, minimum is ${j.minCgpa}`, ok: currentStudent.cgpa >= j.minCgpa },
+      ]
+    : [];
+  const eligible = checks.every((c) => c.ok);
 
   const apply = async () => {
     setBusy(true);
@@ -78,74 +87,82 @@ export default function JobDetails() {
 
   return (
     <>
-      <PageHeader
-        title={j.title}
-        subtitle={
-          <>
-            <Link to={`/companies/${j.company?._id}`} className="link">{j.company?.name}</Link> · {j.location}
-          </>
-        }
-        actions={
-          isAdmin && (
-            <>
-              <Link to={`/jobs/${id}/edit`} className="btn btn-ghost">Edit</Link>
-              <button className="btn btn-danger-ghost" onClick={() => setConfirm(true)}>Delete</button>
-            </>
-          )
-        }
-      />
+      <Link to="/jobs" className="back"><Icon name="arrowLeft" size={15} /> All jobs</Link>
 
-      <div className="grid-2 grid-wide-left">
-        <section className="card detail-card">
-          <dl className="details">
-            <div><dt>Package</dt><dd>₹ {j.salary} LPA</dd></div>
-            <div><dt>Type</dt><dd>{j.type}</dd></div>
-            <div><dt>Openings</dt><dd>{j.openings}</dd></div>
-            <div><dt>Min CGPA</dt><dd>{j.minCgpa}</dd></div>
-            <div><dt>Deadline</dt><dd>{formatDate(j.deadline)} {!isOpen(j.deadline) && <span className="badge badge-closed">Closed</span>}</dd></div>
-            <div><dt>Applicants</dt><dd>{j.applicantCount}</dd></div>
-          </dl>
-          <h3 className="sub">Eligible branches</h3>
-          <div className="chips">
-            {j.eligibleBranches.map((b) => <span key={b} className="chip">{b}</span>)}
+      <section className="job-hero">
+        <div className="job-hero-main">
+          <Avatar name={j.company?.name} size={64} square />
+          <div>
+            <Link to={`/companies/${j.company?._id}`} className="job-hero-company">{j.company?.name}</Link>
+            <h1>{j.title}</h1>
+            <div className="job-hero-meta">
+              <span><Icon name="pin" size={15} /> {j.location}</span>
+              <span><Icon name="briefcase" size={15} /> {j.type}</span>
+              <span className={`pill ${open ? 'pill-open' : 'pill-closed'}`}>{open ? 'Accepting applications' : 'Closed'}</span>
+            </div>
           </div>
-          {j.description && (
-            <>
-              <h3 className="sub">About the role</h3>
-              <p>{j.description}</p>
-            </>
+        </div>
+        <div className="job-hero-pay">
+          <span>Package</span>
+          <strong>₹{j.salary}<small>LPA</small></strong>
+        </div>
+      </section>
+
+      <div className="facts">
+        <div><span>Deadline</span><strong>{formatDate(j.deadline)}</strong><em>{deadlineText(j.deadline)}</em></div>
+        <div><span>Openings</span><strong>{j.openings}</strong><em>positions</em></div>
+        <div><span>Minimum CGPA</span><strong>{j.minCgpa}</strong><em>out of 10</em></div>
+        <div><span>Applicants</span><strong>{j.applicantCount}</strong><em>so far</em></div>
+      </div>
+
+      <div className="split split-wide">
+        <section className="panel">
+          <h2>About the role</h2>
+          <p>{j.description || 'No description provided.'}</p>
+          <h3 className="sub">Eligible branches</h3>
+          <div className="branch-row">
+            {j.eligibleBranches.map((b) => <span key={b} className={`branch ${currentStudent?.branch === b && !isAdmin ? 'branch-mine' : ''}`}>{b}</span>)}
+          </div>
+          {isAdmin && (
+            <div className="panel-actions">
+              <Link to={`/jobs/${id}/edit`} className="btn btn-ghost"><Icon name="edit" size={15} /> Edit job</Link>
+              <button className="btn btn-danger-ghost" onClick={() => setConfirm(true)}><Icon name="trash" size={15} /> Delete</button>
+            </div>
           )}
         </section>
 
         {!isAdmin && (
-          <aside className="card apply-card">
-            <h2 className="card-title">Your application</h2>
+          <aside className="panel apply-panel">
+            <h2>Your eligibility</h2>
             {!currentStudent ? (
-              <p className="muted">Select or register a student to apply.</p>
-            ) : myApp ? (
-              <>
-                <p>Applied on {formatDate(myApp.createdAt)}</p>
-                <StatusBadge status={myApp.status} />
-                {myApp.remarks && <p className="muted small">Remarks: {myApp.remarks}</p>}
-                {myApp.status === 'Applied' && (
-                  <button className="btn btn-danger-ghost btn-block" onClick={withdraw}>Withdraw application</button>
-                )}
-              </>
-            ) : eligibility.ok ? (
-              <>
-                <p className="ok-text">✓ You are eligible for this role.</p>
-                <button className="btn btn-primary btn-block" onClick={apply} disabled={busy}>
-                  {busy ? 'Applying...' : 'Apply now'}
-                </button>
-              </>
+              <p className="muted">Choose a student under “Viewing as” to check eligibility.</p>
             ) : (
               <>
-                <p className="bad-text">You cannot apply:</p>
-                <ul className="reasons">
-                  {eligibility.reasons.map((r) => <li key={r}>{r}</li>)}
+                <ul className="checklist">
+                  {checks.map((c) => (
+                    <li key={c.label} className={c.ok ? 'ok' : 'no'}>
+                      <span className="check-icon"><Icon name={c.ok ? 'check' : 'x'} size={14} stroke={2.6} /></span>
+                      <div><strong>{c.label}</strong><span>{c.detail}</span></div>
+                    </li>
+                  ))}
                 </ul>
-                {/* Lets the backend rule be demonstrated even when the UI already knows the answer */}
-                <button className="btn btn-ghost btn-block" onClick={apply} disabled={busy}>Try applying anyway</button>
+                {myApp ? (
+                  <div className="applied-box">
+                    <div><span className="muted small">Applied on {formatDate(myApp.createdAt)}</span><StatusBadge status={myApp.status} /></div>
+                    {myApp.remarks && <p className="small muted">“{myApp.remarks}”</p>}
+                    {myApp.status === 'Applied' && <button className="btn btn-quiet btn-block" onClick={withdraw}>Withdraw application</button>}
+                  </div>
+                ) : eligible ? (
+                  <button className="btn btn-primary btn-block btn-lg" onClick={apply} disabled={busy}>
+                    {busy ? 'Applying…' : <>Apply now <Icon name="arrowRight" size={16} /></>}
+                  </button>
+                ) : (
+                  <>
+                    <p className="small muted">You don’t meet every requirement for this drive.</p>
+                    {/* Sends the request anyway, to show the server enforcing the same rules */}
+                    <button className="btn btn-ghost btn-block" onClick={apply} disabled={busy}>Try applying anyway</button>
+                  </>
+                )}
               </>
             )}
           </aside>
@@ -153,11 +170,13 @@ export default function JobDetails() {
       </div>
 
       {isAdmin && (
-        <section className="card">
-          <h2 className="card-title">Applicants ({apps.data?.length || 0})</h2>
+        <section className="panel panel-flush">
+          <div className="panel-head padded">
+            <h2>Applicants <span className="count">{apps.data?.length || 0}</span></h2>
+          </div>
           <ErrorMessage message={apps.error} />
           {apps.data?.length === 0 ? (
-            <p className="muted">No applications yet.</p>
+            <p className="muted padded">No applications yet.</p>
           ) : (
             <div className="table-wrap">
               <table className="table">
@@ -167,12 +186,20 @@ export default function JobDetails() {
                 <tbody>
                   {apps.data?.map((a) => (
                     <tr key={a._id}>
-                      <td><Link to={`/students/${a.student?._id}`} className="link">{a.student?.name}</Link><div className="muted small">{a.student?.rollNo}</div></td>
-                      <td>{a.student?.branch}</td>
-                      <td>{a.student?.cgpa}</td>
-                      <td>{formatDate(a.createdAt)}</td>
                       <td>
-                        <select className={`input input-sm status-select status-${a.status.toLowerCase()}`} value={a.status} onChange={(e) => updateStatus(a._id, e.target.value)} aria-label="Application status">
+                        <div className="cell-person">
+                          <Avatar name={a.student?.name} size={32} />
+                          <div>
+                            <Link to={`/students/${a.student?._id}`} className="strong-link">{a.student?.name}</Link>
+                            <span className="mono small muted">{a.student?.rollNo}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="branch">{a.student?.branch}</span></td>
+                      <td className="mono">{a.student?.cgpa}</td>
+                      <td className="mono small">{formatDate(a.createdAt)}</td>
+                      <td>
+                        <select className={`status-select status-${a.status.toLowerCase()}`} value={a.status} onChange={(e) => updateStatus(a._id, e.target.value)} aria-label="Application status">
                           {STATUSES.map((s) => <option key={s}>{s}</option>)}
                         </select>
                       </td>
@@ -185,13 +212,7 @@ export default function JobDetails() {
         </section>
       )}
 
-      <ConfirmModal
-        open={confirm}
-        title="Delete this job?"
-        message="All applications for this job will also be deleted."
-        onConfirm={deleteJob}
-        onCancel={() => setConfirm(false)}
-      />
+      <ConfirmModal open={confirm} title="Delete this job?" message="All applications for this job will also be deleted." onConfirm={deleteJob} onCancel={() => setConfirm(false)} />
     </>
   );
 }

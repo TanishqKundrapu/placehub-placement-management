@@ -34,7 +34,8 @@ Use the **Admin / Student** switch in the navbar to change roles. In Student mod
 - Companies: add, edit, delete and search. Deleting a company also deletes its jobs and their applications
 - Jobs: post and edit jobs with package, openings, minimum CGPA, eligible branches and a deadline. Search and filter by branch, type, salary or open/closed
 - Students: register, edit, delete, and search by name, roll no or skill. Filter by branch or CGPA
-- Applications: filter by status and move each candidate through **Applied → Shortlisted → Interview → Selected / Rejected**
+- Applications: a Kanban board – drag a candidate between **Applied → Shortlisted → Interview → Selected / Rejected** – plus a filterable list view
+- Dashboard funnel showing how far every application has progressed
 
 **Student**
 - A personal dashboard with "Jobs you can apply for", filtered to the student's branch and CGPA
@@ -108,7 +109,8 @@ placement-management/
 │   └── server.js
 └── frontend/
     └── src/
-        ├── components/  Navbar, JobCard, StatCard, StatusBadge, SearchBar, FormField, ConfirmModal, PageHeader, Loader, EmptyState, ErrorMessage
+        ├── components/  Sidebar, KanbanBoard, PipelineFunnel, JobCard, CgpaRing, Avatar, Icon, StatCard, StatusBadge, SearchBar,
+        │                FormField, ConfirmModal, PageHeader, Loader, EmptyState, ErrorMessage
         ├── pages/       Dashboard, Companies, CompanyDetails, CompanyForm, Jobs, JobDetails, JobForm, Students, StudentForm, StudentProfile, Applications, NotFound
         ├── context/     RoleContext (admin/student switch), ToastContext (notifications)
         ├── hooks/       useFetch
@@ -123,7 +125,7 @@ placement-management/
 
 | Requirement | Where it's met |
 |---|---|
-| 5–8 reusable React components | 11 components in `src/components` |
+| 5–8 reusable React components | 16 components in `src/components` |
 | 4–5 pages with React Router | 12 pages / 15 routes, including an admin-only route guard and a 404 page |
 | 2–3 forms with validation | Company, Job and Student forms, each with client-side validation and server error display |
 | GET, POST, PUT, DELETE | All four on every main resource |

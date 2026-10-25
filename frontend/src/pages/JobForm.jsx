@@ -97,7 +97,7 @@ export default function JobForm() {
 
   return (
     <>
-      <PageHeader title={isEdit ? 'Edit Job' : 'Post a Job'} subtitle="Eligibility rules are enforced when students apply" />
+      <PageHeader eyebrow="Campus drives" title={isEdit ? 'Edit job' : 'Post a job'} subtitle="Students only see Apply when they meet the branch, CGPA and deadline rules you set here." />
       <form className="card form" onSubmit={onSubmit} noValidate>
         <ErrorMessage message={serverError} />
         <div className="form-grid">

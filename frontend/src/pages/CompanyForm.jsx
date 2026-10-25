@@ -67,7 +67,7 @@ export default function CompanyForm() {
 
   return (
     <>
-      <PageHeader title={isEdit ? 'Edit Company' : 'Add Company'} subtitle="Recruiter details" />
+      <PageHeader eyebrow="Recruiters" title={isEdit ? 'Edit company' : 'Add a company'} subtitle="Basic details shown to students on every job this company posts." />
       <form className="card form" onSubmit={onSubmit} noValidate>
         <ErrorMessage message={serverError} />
         <div className="form-grid">

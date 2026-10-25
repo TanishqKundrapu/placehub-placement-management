@@ -9,6 +9,7 @@ import JobCard from '../components/JobCard';
 import Loader from '../components/Loader';
 import ErrorMessage from '../components/ErrorMessage';
 import EmptyState from '../components/EmptyState';
+import Icon from '../components/Icon';
 
 const filterDefs = [
   { name: 'branch', label: 'All branches', options: BRANCHES.map((b) => ({ value: b, label: b })) },
@@ -43,9 +44,10 @@ export default function Jobs() {
   return (
     <>
       <PageHeader
-        title={isAdmin ? 'Job Postings' : 'Browse Jobs'}
-        subtitle={isAdmin ? 'All drives and internships' : 'Find roles that match your branch and CGPA'}
-        actions={isAdmin && <Link to="/jobs/new" className="btn btn-primary">+ Post Job</Link>}
+        eyebrow={isAdmin ? 'Campus drives' : 'Opportunities'}
+        title={isAdmin ? 'Job postings' : 'Browse jobs'}
+        subtitle={isAdmin ? 'Every full-time drive and internship this season, open drives first.' : 'Roles open to your branch are highlighted. Eligibility is checked before you apply.'}
+        actions={isAdmin && <Link to="/jobs/new" className="btn btn-primary"><Icon name="plus" size={16} /> Post a job</Link>}
       />
       <SearchBar
         value={search}
@@ -60,11 +62,11 @@ export default function Jobs() {
       {loading && !data ? (
         <Loader />
       ) : data?.length === 0 ? (
-        <EmptyState title="No jobs match" message="Try clearing some filters." />
+        <EmptyState icon="briefcase" title="No jobs match these filters" message="Clear a filter or search for a different company." />
       ) : (
         <>
-          <p className="muted small result-count">{data?.length} job(s) found</p>
-          <div className="card-grid">
+          <p className="result-count">{data?.length} job{data?.length === 1 ? '' : 's'}</p>
+          <div className="ticket-grid">
             {data?.map((j) => (
               <JobCard key={j._id} job={j} student={isAdmin ? null : currentStudent} applied={appliedIds.has(j._id)} />
             ))}

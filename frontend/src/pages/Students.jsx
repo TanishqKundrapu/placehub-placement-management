@@ -6,6 +6,8 @@ import { useRole } from '../context/RoleContext';
 import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import SearchBar from '../components/SearchBar';
+import Avatar from '../components/Avatar';
+import Icon from '../components/Icon';
 import Loader from '../components/Loader';
 import ErrorMessage from '../components/ErrorMessage';
 import EmptyState from '../components/EmptyState';
@@ -39,14 +41,15 @@ export default function Students() {
   return (
     <>
       <PageHeader
+        eyebrow="Candidates"
         title="Students"
-        subtitle="Registered candidates for placements"
-        actions={<Link to="/students/new" className="btn btn-primary">+ Register Student</Link>}
+        subtitle="Students registered for this placement season."
+        actions={<Link to="/students/new" className="btn btn-primary"><Icon name="plus" size={16} /> Register student</Link>}
       />
       <SearchBar
         value={search}
         onChange={setSearch}
-        placeholder="Search by name, roll no, email or skill"
+        placeholder="Search by name, roll number, e-mail or skill"
         filters={filterDefs}
         filterValues={filters}
         onFilterChange={(name, value) => setFilters((f) => ({ ...f, [name]: value || undefined }))}
@@ -56,27 +59,39 @@ export default function Students() {
       {loading && !data ? (
         <Loader />
       ) : data?.length === 0 ? (
-        <EmptyState title="No students found" />
+        <EmptyState icon="users" title="No students found" message="Try another search or clear the filters." />
       ) : (
-        <div className="card table-wrap">
+        <div className="panel panel-flush table-wrap">
           <table className="table">
             <thead>
-              <tr>
-                <th>Roll No</th><th>Name</th><th>Branch</th><th>CGPA</th><th>Email</th><th>Phone</th><th aria-label="Actions" />
-              </tr>
+              <tr><th>Student</th><th>Branch</th><th>CGPA</th><th>Contact</th><th>Skills</th><th aria-label="Actions" /></tr>
             </thead>
             <tbody>
               {data?.map((s) => (
                 <tr key={s._id}>
-                  <td className="mono">{s.rollNo}</td>
-                  <td><Link to={`/students/${s._id}`} className="link">{s.name}</Link></td>
-                  <td><span className="chip">{s.branch}</span></td>
-                  <td>{s.cgpa}</td>
-                  <td>{s.email}</td>
-                  <td>{s.phone}</td>
-                  <td className="row-actions">
-                    <Link to={`/students/${s._id}/edit`} className="btn btn-sm btn-ghost">Edit</Link>
-                    <button className="btn btn-sm btn-danger-ghost" onClick={() => setToDelete(s)}>Delete</button>
+                  <td>
+                    <div className="cell-person">
+                      <Avatar name={s.name} size={34} />
+                      <div>
+                        <Link to={`/students/${s._id}`} className="strong-link">{s.name}</Link>
+                        <span className="mono small muted">{s.rollNo}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className="branch">{s.branch}</span></td>
+                  <td>
+                    <div className="cgpa-cell">
+                      <span className="mono">{s.cgpa.toFixed(1)}</span>
+                      <span className="cgpa-bar"><span style={{ width: `${s.cgpa * 10}%` }} /></span>
+                    </div>
+                  </td>
+                  <td className="small"><div>{s.email}</div><div className="mono muted">{s.phone}</div></td>
+                  <td><div className="skill-row">{s.skills.slice(0, 3).map((k) => <span key={k} className="skill">{k}</span>)}</div></td>
+                  <td>
+                    <div className="row-actions">
+                      <Link to={`/students/${s._id}/edit`} className="icon-btn" aria-label={`Edit ${s.name}`}><Icon name="edit" size={16} /></Link>
+                      <button className="icon-btn icon-btn-danger" aria-label={`Delete ${s.name}`} onClick={() => setToDelete(s)}><Icon name="trash" size={16} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}

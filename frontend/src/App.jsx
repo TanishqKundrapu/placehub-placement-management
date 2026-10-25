@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import { useRole } from './context/RoleContext';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
@@ -22,32 +22,34 @@ function AdminOnly({ children }) {
 
 export default function App() {
   return (
-    <>
-      <Navbar />
-      <main className="container">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
+    <div className="shell">
+      <Sidebar />
+      <main className="main">
+        <div className="container">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
 
-          <Route path="/companies" element={<AdminOnly><Companies /></AdminOnly>} />
-          <Route path="/companies/new" element={<AdminOnly><CompanyForm /></AdminOnly>} />
-          <Route path="/companies/:id/edit" element={<AdminOnly><CompanyForm /></AdminOnly>} />
-          <Route path="/companies/:id" element={<CompanyDetails />} />
+            <Route path="/companies" element={<AdminOnly><Companies /></AdminOnly>} />
+            <Route path="/companies/new" element={<AdminOnly><CompanyForm /></AdminOnly>} />
+            <Route path="/companies/:id/edit" element={<AdminOnly><CompanyForm /></AdminOnly>} />
+            <Route path="/companies/:id" element={<CompanyDetails />} />
 
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/jobs/new" element={<AdminOnly><JobForm /></AdminOnly>} />
-          <Route path="/jobs/:id/edit" element={<AdminOnly><JobForm /></AdminOnly>} />
-          <Route path="/jobs/:id" element={<JobDetails />} />
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/jobs/new" element={<AdminOnly><JobForm /></AdminOnly>} />
+            <Route path="/jobs/:id/edit" element={<AdminOnly><JobForm /></AdminOnly>} />
+            <Route path="/jobs/:id" element={<JobDetails />} />
 
-          <Route path="/students" element={<AdminOnly><Students /></AdminOnly>} />
-          <Route path="/students/new" element={<StudentForm />} />
-          <Route path="/students/:id/edit" element={<StudentForm />} />
-          <Route path="/students/:id" element={<StudentProfile />} />
+            <Route path="/students" element={<AdminOnly><Students /></AdminOnly>} />
+            <Route path="/students/new" element={<StudentForm />} />
+            <Route path="/students/:id/edit" element={<StudentForm />} />
+            <Route path="/students/:id" element={<StudentProfile />} />
 
-          <Route path="/applications" element={<Applications />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="/applications" element={<Applications />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <footer className="footer">PlaceHub · GITAM Training &amp; Placement Cell · React · Express · MongoDB</footer>
       </main>
-      <footer className="footer">PlaceHub · College Placement Management System · React + Express + MongoDB</footer>
-    </>
+    </div>
   );
 }

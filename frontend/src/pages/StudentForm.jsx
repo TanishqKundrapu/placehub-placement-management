@@ -77,7 +77,7 @@ export default function StudentForm() {
 
   return (
     <>
-      <PageHeader title={isEdit ? 'Edit Student Profile' : 'Student Registration'} subtitle="Profile used for job eligibility" />
+      <PageHeader eyebrow="Candidates" title={isEdit ? 'Edit profile' : 'Register a student'} subtitle="Branch and CGPA decide which drives this student can apply to." />
       <form className="card form" onSubmit={onSubmit} noValidate>
         <ErrorMessage message={serverError} />
         <div className="form-grid">

@@ -6,39 +6,47 @@ import { useRole } from '../context/RoleContext';
 import { useToast } from '../context/ToastContext';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import KanbanBoard from '../components/KanbanBoard';
+import Avatar from '../components/Avatar';
+import Icon from '../components/Icon';
 import Loader from '../components/Loader';
 import ErrorMessage from '../components/ErrorMessage';
 import EmptyState from '../components/EmptyState';
 import ConfirmModal from '../components/ConfirmModal';
 import { formatDate } from '../utils';
 
+const STEPS = ['Applied', 'Shortlisted', 'Interview', 'Selected'];
+
 export default function Applications() {
   const { isAdmin, studentId } = useRole();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
   const status = params.get('status') || '';
+  const [view, setView] = useState(status ? 'list' : 'board');
   const [search, setSearch] = useState('');
   const [toWithdraw, setToWithdraw] = useState(null);
 
-  const { data, loading, error, reload } = useFetch(() => {
+  const { data, setData, loading, error, reload } = useFetch(() => {
     if (!isAdmin && !studentId) return Promise.resolve({ data: [] });
-    return applicationApi.list({ status: status || undefined, student: isAdmin ? undefined : studentId });
-  }, [status, isAdmin, studentId]);
+    return applicationApi.list({ student: isAdmin ? undefined : studentId });
+  }, [isAdmin, studentId]);
 
-  // Client-side text filter over the loaded rows
   const q = search.trim().toLowerCase();
   const rows = (data || []).filter(
     (a) =>
-      !q ||
-      [a.student?.name, a.student?.rollNo, a.job?.title, a.job?.company?.name].some((v) => v?.toLowerCase().includes(q))
+      (!status || a.status === status) &&
+      (!q || [a.student?.name, a.student?.rollNo, a.job?.title, a.job?.company?.name].some((v) => v?.toLowerCase().includes(q)))
   );
 
-  const updateStatus = async (id, next) => {
+  // Optimistic update: move the card immediately, roll back if the server refuses
+  const move = async (id, next) => {
+    const before = data;
+    setData((d) => d.map((a) => (a._id === id ? { ...a, status: next } : a)));
     try {
       const res = await applicationApi.update(id, { status: next });
       toast(res.message);
-      reload();
     } catch (err) {
+      setData(before);
       toast(err.message, 'error');
     }
   };
@@ -54,80 +62,123 @@ export default function Applications() {
     setToWithdraw(null);
   };
 
+  const counts = Object.fromEntries(STATUSES.map((s) => [s, (data || []).filter((a) => a.status === s).length]));
+
   return (
     <>
       <PageHeader
-        title={isAdmin ? 'Applications' : 'My Applications'}
-        subtitle={isAdmin ? 'Move candidates through the hiring pipeline' : 'Track where each application stands'}
+        eyebrow={isAdmin ? 'Hiring pipeline' : 'Your applications'}
+        title={isAdmin ? 'Applications' : 'My applications'}
+        subtitle={isAdmin ? 'Drag a candidate to another column to change their status.' : 'Track where each application stands.'}
+        actions={
+          isAdmin && (
+            <div className="segmented segmented-light" role="group" aria-label="View">
+              <button className={view === 'board' ? 'active' : ''} onClick={() => setView('board')}><Icon name="board" size={15} /> Board</button>
+              <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}><Icon name="list" size={15} /> List</button>
+            </div>
+          )
+        }
       />
 
-      <div className="tabs" role="tablist">
-        {['', ...STATUSES].map((s) => (
-          <button key={s || 'all'} role="tab" aria-selected={status === s} className={status === s ? 'active' : ''} onClick={() => setParams(s ? { status: s } : {})}>
-            {s || 'All'}
-          </button>
-        ))}
-      </div>
-
-      <div className="search-bar">
-        <input type="search" className="input search-input" placeholder="Filter by student, roll no, job or company" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Filter applications" />
+      <div className="toolbar">
+        <label className="search">
+          <Icon name="search" size={17} />
+          <input type="search" placeholder="Search by student, roll number, job or company" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search applications" />
+        </label>
+        {(view === 'list' || !isAdmin) && (
+          <div className="chips-filter" role="tablist">
+            {['', ...STATUSES].map((s) => (
+              <button key={s || 'all'} role="tab" aria-selected={status === s} className={status === s ? 'active' : ''} onClick={() => setParams(s ? { status: s } : {})}>
+                {s || 'All'} <span>{s ? counts[s] : (data || []).length}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <ErrorMessage message={error} onRetry={reload} />
 
       {loading && !data ? (
         <Loader />
+      ) : isAdmin && view === 'board' ? (
+        <KanbanBoard applications={rows} onMove={move} />
       ) : rows.length === 0 ? (
-        <EmptyState title="No applications" message={isAdmin ? 'Nothing matches this filter.' : 'Apply to a job to see it here.'} action={!isAdmin && <Link to="/jobs" className="btn btn-primary">Browse jobs</Link>} />
-      ) : (
-        <div className="card table-wrap">
+        <EmptyState
+          icon="board"
+          title="No applications here"
+          message={isAdmin ? 'Nothing matches this filter.' : 'When you apply to a job it will appear here with its progress.'}
+          action={!isAdmin && <Link to="/jobs" className="btn btn-primary">Browse jobs</Link>}
+        />
+      ) : isAdmin ? (
+        <div className="panel panel-flush table-wrap">
           <table className="table">
             <thead>
-              <tr>
-                {isAdmin && <th>Student</th>}
-                <th>Job</th><th>Company</th><th>Package</th><th>Applied</th><th>Status</th>
-                {!isAdmin && <th aria-label="Actions" />}
-              </tr>
+              <tr><th>Student</th><th>Job</th><th>Package</th><th>Applied</th><th>Status</th></tr>
             </thead>
             <tbody>
               {rows.map((a) => (
                 <tr key={a._id}>
-                  {isAdmin && (
-                    <td>
-                      <Link to={`/students/${a.student?._id}`} className="link">{a.student?.name}</Link>
-                      <div className="muted small">{a.student?.rollNo} · {a.student?.branch} · {a.student?.cgpa}</div>
-                    </td>
-                  )}
-                  <td><Link to={`/jobs/${a.job?._id}`} className="link">{a.job?.title}</Link></td>
-                  <td>{a.job?.company?.name}</td>
-                  <td>₹{a.job?.salary} LPA</td>
-                  <td>{formatDate(a.createdAt)}</td>
                   <td>
-                    {isAdmin ? (
-                      <select className={`input input-sm status-select status-${a.status.toLowerCase()}`} value={a.status} onChange={(e) => updateStatus(a._id, e.target.value)} aria-label="Application status">
-                        {STATUSES.map((s) => <option key={s}>{s}</option>)}
-                      </select>
-                    ) : (
-                      <StatusBadge status={a.status} />
-                    )}
+                    <div className="cell-person">
+                      <Avatar name={a.student?.name} size={32} />
+                      <div>
+                        <Link to={`/students/${a.student?._id}`} className="strong-link">{a.student?.name}</Link>
+                        <span className="mono small muted">{a.student?.rollNo} · {a.student?.branch} · {a.student?.cgpa}</span>
+                      </div>
+                    </div>
                   </td>
-                  {!isAdmin && (
-                    <td className="row-actions">
-                      {a.status === 'Applied' && (
-                        <button className="btn btn-sm btn-danger-ghost" onClick={() => setToWithdraw(a)}>Withdraw</button>
-                      )}
-                    </td>
-                  )}
+                  <td><Link to={`/jobs/${a.job?._id}`} className="strong-link">{a.job?.title}</Link><div className="small muted">{a.job?.company?.name}</div></td>
+                  <td className="mono">₹{a.job?.salary} LPA</td>
+                  <td className="mono small">{formatDate(a.createdAt)}</td>
+                  <td>
+                    <select className={`status-select status-${a.status.toLowerCase()}`} value={a.status} onChange={(e) => move(a._id, e.target.value)} aria-label="Application status">
+                      {STATUSES.map((s) => <option key={s}>{s}</option>)}
+                    </select>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      ) : (
+        <div className="track-list">
+          {rows.map((a) => {
+            // An offer completes every step; otherwise the current status is the step in progress
+            const reached = a.status === 'Selected' ? STEPS.length : STEPS.indexOf(a.status);
+            return (
+              <article key={a._id} className="track">
+                <div className="track-head">
+                  <Avatar name={a.job?.company?.name} size={42} square />
+                  <div className="track-title">
+                    <Link to={`/jobs/${a.job?._id}`}>{a.job?.title}</Link>
+                    <span className="muted">{a.job?.company?.name} · ₹{a.job?.salary} LPA · applied {formatDate(a.createdAt)}</span>
+                  </div>
+                  <StatusBadge status={a.status} />
+                </div>
+                {a.status === 'Rejected' ? (
+                  <p className="track-closed">This application was closed{a.remarks ? `: ${a.remarks}` : '.'}</p>
+                ) : (
+                  <ol className="steps">
+                    {STEPS.map((s, i) => (
+                      <li key={s} className={i < reached ? 'done' : i === reached ? 'current' : ''}>
+                        <span className="step-dot">{i < reached ? <Icon name="check" size={12} stroke={3} /> : null}</span>
+                        {s === 'Selected' ? 'Offer' : s}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {a.status === 'Applied' && (
+                  <button className="btn btn-quiet btn-sm" onClick={() => setToWithdraw(a)}>Withdraw application</button>
+                )}
+              </article>
+            );
+          })}
+        </div>
       )}
 
       <ConfirmModal
         open={!!toWithdraw}
-        title="Withdraw application?"
-        message={`Your application for ${toWithdraw?.job?.title} will be removed.`}
+        title="Withdraw this application?"
+        message={`Your application for ${toWithdraw?.job?.title} at ${toWithdraw?.job?.company?.name} will be removed.`}
         confirmText="Withdraw"
         onConfirm={withdraw}
         onCancel={() => setToWithdraw(null)}

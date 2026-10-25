@@ -1,3 +1,8 @@
 export default function StatusBadge({ status }) {
-  return <span className={`badge status-${String(status).toLowerCase()}`}>{status}</span>;
+  return (
+    <span className={`status status-${String(status).toLowerCase()}`}>
+      <span className="status-dot" />
+      {status}
+    </span>
+  );
 }
