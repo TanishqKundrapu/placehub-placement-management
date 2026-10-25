@@ -32,7 +32,17 @@ const students = [
 
 const run = async () => {
   await mongoose.connect(MONGO_URI);
-  await Promise.all([Company.deleteMany(), Job.deleteMany(), Student.deleteMany(), Application.deleteMany()]);
+
+  // `npm run seed -- --if-empty` (used for the cloud database) never deletes: it only fills an empty database
+  if (process.argv.includes('--if-empty')) {
+    const counts = await Promise.all([Company, Job, Student, Application].map((m) => m.countDocuments()));
+    if (counts.some((c) => c > 0)) {
+      console.log('Database already has data – nothing inserted.');
+      return mongoose.disconnect();
+    }
+  } else {
+    await Promise.all([Company.deleteMany(), Job.deleteMany(), Student.deleteMany(), Application.deleteMany()]);
+  }
   await Application.syncIndexes();
 
   const c = await Company.insertMany(companies);
