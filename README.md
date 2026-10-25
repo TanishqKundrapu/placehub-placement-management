@@ -124,7 +124,7 @@ placement-management/
 | Requirement | Where it's met |
 |---|---|
 | 5–8 reusable React components | 11 components in `src/components` |
-| 4–5 pages with React Router | 12 pages / 13 routes, including an admin-only route guard and a 404 page |
+| 4–5 pages with React Router | 12 pages / 15 routes, including an admin-only route guard and a 404 page |
 | 2–3 forms with validation | Company, Job and Student forms, each with client-side validation and server error display |
 | GET, POST, PUT, DELETE | All four on every main resource |
 | Separate Express route files | `backend/routes/*Routes.js` |
