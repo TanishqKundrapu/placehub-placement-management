@@ -1,0 +1,14 @@
+# Render Blueprint: one web service runs Express, which also serves the React build
+services:
+  - type: web
+    name: placehub
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /api
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false   # set to the MongoDB Atlas connection string in the Render dashboard
