@@ -33,7 +33,12 @@ export default function Navbar() {
     <header className="navbar">
       <div className="navbar-inner">
         <NavLink to="/" className="brand" onClick={() => setMenuOpen(false)}>
-          <span className="brand-mark">P</span>
+          <span className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3z" />
+              <path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
+            </svg>
+          </span>
           <span>
             PlaceHub <small>Placement Cell</small>
           </span>
